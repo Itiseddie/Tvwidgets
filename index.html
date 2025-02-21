@@ -108,12 +108,16 @@
                 "PEP", "KO", "NKE", "WMT", "MCD", "T", "GE", "GM", "F", "UBER"
             ];
 
-            const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${allSymbols.join(",")}`;
+            // Yahoo Finance Proxy API (Fixes CORS issues)
+            const url = `https://api.allorigins.win/get?url=${encodeURIComponent(
+                `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${allSymbols.join(",")}`
+            )}`;
 
             try {
                 const response = await fetch(url);
-                const data = await response.json();
-                
+                const rawData = await response.json();
+                const data = JSON.parse(rawData.contents);
+
                 if (!data.quoteResponse || !data.quoteResponse.result) {
                     throw new Error("No data received");
                 }
