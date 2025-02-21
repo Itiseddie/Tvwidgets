@@ -66,5 +66,104 @@
 </div>
 <!-- TradingView Widget END -->
 
+<!-- heatmap test -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Stock Heatmap</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: white;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        #heatmap {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            max-width: 90%;
+            margin: auto;
+        }
+        .stock {
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            transition: 0.3s;
+            color: white;
+        }
+        .up {
+            background-color: #2ecc71; /* Green */
+        }
+        .down {
+            background-color: #e74c3c; /* Red */
+        }
+        .neutral {
+            background-color: #95a5a6; /* Gray */
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Stock Market Heatmap</h1>
+    <div id="heatmap">Loading...</div>
+
+    <script>
+        async function fetchStockData() {
+            const allSymbols = [
+                "AAPL", "MSFT", "TSLA", "AMZN", "GOOGL", "NVDA", "META", "NFLX", "BRK-B", "JPM",
+                "AMD", "BA", "XOM", "V", "MA", "PYPL", "INTC", "IBM", "DIS", "CSCO",
+                "PEP", "KO", "NKE", "WMT", "MCD", "T", "GE", "GM", "F", "UBER"
+            ];
+
+            let stockData = [];
+            let batchSize = 10; // Yahoo Finance API limit
+            let promises = [];
+
+            for (let i = 0; i < allSymbols.length; i += batchSize) {
+                let batch = allSymbols.slice(i, i + batchSize);
+                let url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.join(",")}`;
+
+                promises.push(fetch(url).then(res => res.json()).then(data => {
+                    if (data.quoteResponse && data.quoteResponse.result) {
+                        stockData = stockData.concat(data.quoteResponse.result);
+                    }
+                }));
+            }
+
+            await Promise.all(promises);
+            updateHeatmap(stockData);
+        }
+
+        function updateHeatmap(stocks) {
+            const heatmapDiv = document.getElementById("heatmap");
+            heatmapDiv.innerHTML = "";
+
+            stocks.forEach(stock => {
+                const change = stock.regularMarketChangePercent || 0;
+                const colorClass = change > 0 ? "up" : change < 0 ? "down" : "neutral";
+
+                const stockDiv = document.createElement("div");
+                stockDiv.className = `stock ${colorClass}`;
+                stockDiv.innerHTML = `
+                    <div>${stock.symbol}</div>
+                    <div>$${stock.regularMarketPrice?.toFixed(2) || "N/A"}</div>
+                    <div>${change.toFixed(2)}%</div>
+                `;
+                heatmapDiv.appendChild(stockDiv);
+            });
+        }
+
+        fetchStockData();
+        setInterval(fetchStockData, 60000); // Update every 60 seconds
+    </script>
+</body>
+</html>
+
 
 
