@@ -41,6 +41,7 @@
     </style>
 </head>
 <body>
+
     <h1>TradingView Market Widgets</h1>
 
     <!-- TradingView Ticker Widget -->
@@ -59,7 +60,7 @@
 
     <br>
 
-    <!-- TradingView Chart Widget -->
+    <!-- TradingView Mini Chart Widget -->
     <div class="tradingview-widget-container">
         <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-chart.js">
         {
@@ -75,23 +76,23 @@
 
     <!-- TradingView Heatmap Widget -->
     <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
-      {
-        "dataSource": "SPX500",
-        "grouping": "sector",
-        "blockSize": "market_cap_basic",
-        "blockColor": "change",
-        "locale": "en",
-        "colorTheme": "light",
-        "hasTopBar": false,
-        "isZoomEnabled": true,
-        "hasSymbolTooltip": true,
-        "isMonoSize": false,
-        "width": "100%",
-        "height": "500"
-      }
-      </script>
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+        {
+            "dataSource": "SPX500",
+            "grouping": "sector",
+            "blockSize": "market_cap_basic",
+            "blockColor": "change",
+            "locale": "en",
+            "colorTheme": "light",
+            "hasTopBar": false,
+            "isZoomEnabled": true,
+            "hasSymbolTooltip": true,
+            "isMonoSize": false,
+            "width": "100%",
+            "height": "500"
+        }
+        </script>
     </div>
 
     <br>
@@ -100,34 +101,28 @@
     <div id="heatmap">Loading...</div>
 
     <script>
-        const API_KEY = "YOUR_FINNHUB_API_KEY"; // Replace with your free API key from https://finnhub.io/
-
         async function fetchStockData() {
             const allSymbols = [
-                "AAPL", "MSFT", "TSLA", "AMZN", "GOOGL", "NVDA", "META", "NFLX", "BRK.B", "JPM",
+                "AAPL", "MSFT", "TSLA", "AMZN", "GOOGL", "NVDA", "META", "NFLX", "BRK-B", "JPM",
                 "AMD", "BA", "XOM", "V", "MA", "PYPL", "INTC", "IBM", "DIS", "CSCO",
                 "PEP", "KO", "NKE", "WMT", "MCD", "T", "GE", "GM", "F", "UBER"
             ];
 
-            let stockData = [];
-            let promises = [];
+            const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${allSymbols.join(",")}`;
 
-            for (let symbol of allSymbols) {
-                let url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (!data.quoteResponse || !data.quoteResponse.result) {
+                    throw new Error("No data received");
+                }
 
-                promises.push(fetch(url).then(res => res.json()).then(data => {
-                    if (data.c !== undefined) {
-                        stockData.push({
-                            symbol: symbol,
-                            price: data.c,
-                            change: data.dp
-                        });
-                    }
-                }));
+                updateHeatmap(data.quoteResponse.result);
+            } catch (error) {
+                console.error("Error fetching stock data:", error);
+                document.getElementById("heatmap").innerHTML = "<p>Error loading data</p>";
             }
-
-            await Promise.all(promises);
-            updateHeatmap(stockData);
         }
 
         function updateHeatmap(stocks) {
@@ -135,14 +130,14 @@
             heatmapDiv.innerHTML = "";
 
             stocks.forEach(stock => {
-                const change = stock.change || 0;
+                const change = stock.regularMarketChangePercent || 0;
                 const colorClass = change > 0 ? "up" : change < 0 ? "down" : "neutral";
 
                 const stockDiv = document.createElement("div");
                 stockDiv.className = `stock ${colorClass}`;
                 stockDiv.innerHTML = `
                     <div>${stock.symbol}</div>
-                    <div>$${stock.price.toFixed(2)}</div>
+                    <div>$${stock.regularMarketPrice?.toFixed(2) || "N/A"}</div>
                     <div>${change.toFixed(2)}%</div>
                 `;
                 heatmapDiv.appendChild(stockDiv);
